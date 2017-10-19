@@ -43,11 +43,25 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 		SimpleBuildpack:     "simple_bp_" + cutlass.RandStringRunes(6),
 		SimpleBuildpackFile: tmpfile.Name() + ".zip",
 	}
-	cmd := exec.Command("bash", "-cl", "go build -o bp-supply main.go && cf install-plugin -f bp-supply && cf bp-supply --path=fixtures/simple --version=1.2.3 Simple "+data.SimpleBuildpackFile)
+
+	cmd := exec.Command("go", "build", "-o", "bp-supply", "main.go")
 	cmd.Dir = bpDir
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	Expect(cmd.Run()).To(Succeed())
+
+	cmd := exec.Command("cf", "install-plugin", "-f", "bp-supply")
+	cmd.Dir = bpDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	Expect(cmd.Run()).To(Succeed())
+
+	cmd := exec.Command("cf", "bp-supply", "--path=fixtures/simple", "--version=1.2.3", "Simple", data.SimpleBuildpackFile)
+	cmd.Dir = bpDir
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	Expect(cmd.Run()).To(Succeed())
+
 	Expect(cutlass.CreateOrUpdateBuildpack(data.SimpleBuildpack, data.SimpleBuildpackFile)).To(Succeed())
 	data.SimpleBuildpack = data.SimpleBuildpack + "_buildpack"
 
