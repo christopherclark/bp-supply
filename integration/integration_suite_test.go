@@ -1,8 +1,8 @@
 package integration_test
 
 import (
-	"encoding/json"
 	"flag"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"os/exec"
@@ -15,13 +15,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-var bpDir, simpleBuildpack, simpleBuildpackFile string
-
-type passToRunAll struct {
-	BpDir               string
-	SimpleBuildpack     string
-	SimpleBuildpackFile string
-}
+var bpDir string
 
 func init() {
 	flag.StringVar(&cutlass.DefaultMemory, "memory", "128M", "default memory for pushed apps")
@@ -35,34 +29,20 @@ var _ = SynchronizedBeforeSuite(func() []byte {
 	bpDir, err = cutlass.FindRoot()
 	Expect(err).NotTo(HaveOccurred())
 
-	tmpfile, err := ioutil.TempFile("", "simple-bp-")
-	Expect(err).NotTo(HaveOccurred())
-	Expect(tmpfile.Close()).To(Succeed())
-	data := passToRunAll{
-		BpDir:               bpDir,
-		SimpleBuildpack:     "simple_bp_" + cutlass.RandStringRunes(6),
-		SimpleBuildpackFile: tmpfile.Name() + ".zip",
-	}
-	cmd := exec.Command("bash", "-cl", "go build -o bp-supply main.go && cf install-plugin -f bp-supply && cf bp-supply --path=fixtures/simple --version=1.2.3 Simple "+data.SimpleBuildpackFile)
+	cmd := exec.Command("go", "build", "-o", "bp-supply", "main.go")
 	cmd.Dir = bpDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
 	Expect(cmd.Run()).To(Succeed())
-	Expect(cutlass.CreateOrUpdateBuildpack(data.SimpleBuildpack, data.SimpleBuildpackFile)).To(Succeed())
-	data.SimpleBuildpack = data.SimpleBuildpack + "_buildpack"
 
-	dataBytes, err := json.Marshal(data)
-	Expect(err).NotTo(HaveOccurred())
-	return dataBytes
-}, func(dataBytes []byte) {
+	cmd = exec.Command("cf", "install-plugin", "-f", "bp-supply")
+	cmd.Dir = bpDir
+	Expect(cmd.Run()).To(Succeed())
+
+	return nil
+}, func(_ []byte) {
 	// Run on all nodes
-	data := passToRunAll{}
-	err := json.Unmarshal(dataBytes, &data)
+	var err error
+	bpDir, err = cutlass.FindRoot()
 	Expect(err).NotTo(HaveOccurred())
-
-	bpDir = data.BpDir
-	simpleBuildpack = data.SimpleBuildpack
-	simpleBuildpackFile = data.SimpleBuildpackFile
 
 	cutlass.SeedRandom()
 	cutlass.DefaultStdoutStderr = GinkgoWriter
@@ -72,8 +52,6 @@ var _ = SynchronizedAfterSuite(func() {
 	// Run on all nodes
 }, func() {
 	// Run once
-	RemoveBuildpack(simpleBuildpack)
-	Expect(os.RemoveAll(simpleBuildpackFile)).To(Succeed())
 	Expect(cutlass.DeleteOrphanedRoutes()).To(Succeed())
 })
 
@@ -92,6 +70,25 @@ func DestroyApp(app *cutlass.App) *cutlass.App {
 		app.Destroy()
 	}
 	return nil
+}
+
+func CreateSupplyBuildpack(fixture, bpName, bpVersion string) string {
+	tmpfile, err := ioutil.TempFile("", "bp-supply-")
+	Expect(err).NotTo(HaveOccurred())
+	Expect(tmpfile.Close()).To(Succeed())
+
+	simpleBuildpack := "bp-supply-" + fixture + "-" + cutlass.RandStringRunes(6)
+	simpleBuildpackFile := tmpfile.Name() + ".zip"
+
+	cmd := exec.Command("cf", "bp-supply", fmt.Sprintf("--path=fixtures/%s", fixture), fmt.Sprintf("--version=%s", bpVersion), bpName, simpleBuildpackFile)
+	cmd.Dir = bpDir
+	Expect(cmd.Run()).To(Succeed())
+
+	Expect(cutlass.CreateOrUpdateBuildpack(simpleBuildpack, simpleBuildpackFile)).To(Succeed())
+
+	Expect(os.Remove(simpleBuildpackFile)).To(Succeed())
+
+	return simpleBuildpack + "_buildpack"
 }
 
 func RemoveBuildpack(buildpack string) {

@@ -14,10 +14,16 @@ var _ = Describe("Create a supply buildpack", func() {
 	AfterEach(func() { app = DestroyApp(app) })
 
 	Context("as a supply buildpack", func() {
+		var simpleBuildpack string
 		BeforeEach(func() {
+			simpleBuildpack = CreateSupplyBuildpack("simple", "Simple", "1.2.3")
+
 			app = cutlass.New(filepath.Join(bpDir, "fixtures", "app"))
 			app.Buildpacks = []string{simpleBuildpack, "binary_buildpack"}
 			app.SetEnv("BP_DEBUG", "1")
+		})
+		AfterEach(func() {
+			RemoveBuildpack(simpleBuildpack)
 		})
 
 		It("supplies fixtures/simple files to later buildpacks", func() {
