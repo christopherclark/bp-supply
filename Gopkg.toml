@@ -17,3 +17,7 @@
 [[constraint]]
   branch = "master"
   name = "github.com/pborman/getopt"
+
+[[override]]
+  name = "github.com/elazarl/goproxy"
+  revision = "aacba83f36a55ac31cbb71c06547a328c0cd1604"

@@ -34,8 +34,7 @@
 [[projects]]
   name = "github.com/elazarl/goproxy"
   packages = ["."]
-  revision = "0a5b8bdb09049ae4ae68e75437ded0b7a2e324e3"
-  version = "v1.0"
+  revision = "aacba83f36a55ac31cbb71c06547a328c0cd1604"
 
 [[projects]]
   name = "github.com/onsi/ginkgo"
@@ -94,6 +93,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "84c9f6428c58a04203557f84640cfdbe96ad7d78ae9d2ee1735d8e4a65ebe575"
+  inputs-digest = "c3c43af55bd02f7d1c645255e2470a8488d4fa8e10180a6d5e04a1860d30319f"
   solver-name = "gps-cdcl"
   solver-version = 1
